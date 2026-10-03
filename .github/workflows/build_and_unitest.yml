@@ -67,6 +67,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # GitHub-hosted runners have ~14GB free; the CUDA perception image needs more.
+      # Remove preinstalled toolchains the build never uses (~30GB).
+      - name: Free Disk Space
+        if: ${{ matrix.module == 'perception' }}
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/share/powershell \
+            /usr/share/swift /usr/local/julia* /opt/az /usr/local/share/chromium
+          sudo docker image prune --all --force
+          df -h /
+        shell: bash
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         id: buildx
