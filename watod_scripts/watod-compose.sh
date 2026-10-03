@@ -24,6 +24,24 @@ run_docker_compose() {
     docker compose "$@"
 }
 
+# Push images to the registry. Pushes run one at a time (images share large base
+# layers and ghcr.io intermittently returns 500s on concurrent uploads) and retry
+# with backoff on transient registry errors.
+push_docker_compose() {
+  local attempt
+  for attempt in 1 2 3; do
+    if COMPOSE_PARALLEL_LIMIT=1 run_docker_compose "$@" push; then
+      return 0
+    fi
+    if [[ $attempt -lt 3 ]]; then
+      echo "Push failed (attempt $attempt/3), retrying in $((attempt * 30))s..." >&2
+      sleep $((attempt * 30))
+    fi
+  done
+  echo "Error: push failed after 3 attempts" >&2
+  return 1
+}
+
 # Parse arguments
 COMPOSE_CMD=()
 declare -a PRE_PROFILES=()
@@ -155,7 +173,7 @@ if [[ "${COMPOSE_CMD[0]}" == "build" && ${#PRE_PROFILES[@]} -gt 0 ]]; then
   # In CI, push PRE-BUILD images to registry
   if [[ -n ${CI:-} || -n ${GITHUB_ACTIONS:-} ]]; then
     echo "CI detected: Pushing PRE-BUILD images to registry..."
-    run_docker_compose "${PRE_COMPOSE_FILES[@]}" "${PRE_PROFILE_FLAGS[@]}" push
+    push_docker_compose "${PRE_COMPOSE_FILES[@]}" "${PRE_PROFILE_FLAGS[@]}"
   fi
 fi
 
@@ -177,7 +195,7 @@ run_docker_compose "${ALL_COMPOSE_FILES[@]}" "${ALL_PROFILE_FLAGS[@]}" "${COMPOS
 # In CI, push final images after successful build
 if [[ "${COMPOSE_CMD[0]}" == "build" && ( -n ${CI:-} || -n ${GITHUB_ACTIONS:-} ) && ${#ALL_PROFILES[@]} -gt 0 ]]; then
   echo "CI detected: Pushing final images to registry..."
-  run_docker_compose "${ALL_COMPOSE_FILES[@]}" "${ALL_PROFILE_FLAGS[@]}" push
+  push_docker_compose "${ALL_COMPOSE_FILES[@]}" "${ALL_PROFILE_FLAGS[@]}"
 fi
 
 # Display status panel after 'up' command
