@@ -4,6 +4,11 @@ name: Build Monorepo Base Images
 on:
   workflow_dispatch:
 
+# GITHUB_TOKEN needs packages:write to push images to this repo's ghcr.io namespace
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   setup-environment:
     name: Setup environment
@@ -80,8 +85,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.GHCR_USER }}
-          password: ${{ secrets.GHCR_PWD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Inject ROS2 into Image
         if: ${{ matrix.injections.ros2 != '' }}
@@ -110,4 +115,3 @@ jobs:
           target: wato_base
           build-args: |
             GENERIC_IMAGE=${{ steps.construct-registry-url.outputs.url }}_generic
-            USER_PASSWD=${{ secrets.MONOREPO_PASSWD }}

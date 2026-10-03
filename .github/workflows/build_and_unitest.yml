@@ -9,6 +9,11 @@ on:
     branches:
       - main
 
+# GITHUB_TOKEN needs packages:write to push images to this repo's ghcr.io namespace
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   setup-environment:
     name: Setup Environment
@@ -70,8 +75,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.GHCR_USER }}
-          password: ${{ secrets.GHCR_PWD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Module to Build
         run: |

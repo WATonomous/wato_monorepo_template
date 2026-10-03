@@ -34,9 +34,7 @@ Append `:dev` to a module (for example, `ACTIVE_MODULES="perception:dev"`) to ge
 ## Starting a new project from this template
 
 1. Click **Use this template** on GitHub, or copy the repo.
-2. Point the image registry at your new repo:
-   - `REGISTRY_URL` in `watod_scripts/watod-setup-env.sh`
-   - `REGISTRY_URL` in `.github/templates/docker_context/docker_context.sh`
+2. You don't need to configure the registry or any secrets. Images publish to `ghcr.io/<owner>/<repo>`. CI takes that from the repo running the workflow, and local `watod` takes it from your git `origin` remote. CI logs in with the built-in `GITHUB_TOKEN`. To override the registry, set `REGISTRY_URL` in `watod-config.local.sh`.
 3. Replace each `<module>_example` package with your own nodes. Then update `src/<module>/<module>_bringup/launch/<module>.launch.yaml` and add your lifecycle nodes to the lifecycle manager's `node_names`.
 4. Put the topics you care about in `src/infrastructure/infrastructure_bringup/config/topic_healthchecker.yaml`.
 5. Add shared message packages as `src/<module>/<name>_msgs`. Copy them into `docker/infrastructure.Dockerfile` so Foxglove and `ros2 bag` can decode them, and into any other module Dockerfile that uses them.

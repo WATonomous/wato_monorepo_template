@@ -94,7 +94,16 @@ fi
 TAG=$(echo "${TAG:-$BRANCH}" | tr '/' '-')
 
 # Registry
-REGISTRY_URL=${REGISTRY_URL:-"ghcr.io/watonomous/wato_monorepo_template"}
+# Defaults to this repo's ghcr.io namespace: in CI from GITHUB_REPOSITORY, locally from
+# the git origin remote, so repos created from the template never share images.
+if [[ -z ${REGISTRY_URL:-} ]]; then
+  repo_slug=${GITHUB_REPOSITORY:-}
+  if [[ -z $repo_slug ]]; then
+    repo_slug=$(git remote get-url origin 2>/dev/null | sed -E 's#^(https://[^/]+/|git@[^:]+:)##; s#\.git$##' || true)
+  fi
+  repo_slug=${repo_slug:-watonomous/wato_monorepo_template}
+  REGISTRY_URL="ghcr.io/$(echo "$repo_slug" | tr '[:upper:]' '[:lower:]')"
+fi
 REGISTRY="${REGISTRY_URL%%/*}"
 REPOSITORY="${REGISTRY_URL##*/}"
 
